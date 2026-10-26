@@ -75,7 +75,7 @@
   border-bottom: 1px solid rgb(240, 240, 240);
 
   display: flex;
-  flex-direction: column;
+  flex-direction:column;
 }
 
 .home-page .product-image-container {
@@ -88,11 +88,11 @@
 }
 
 .home-page .product-image {
-  /* Images overflow the container by default. To prevent this, set
+   /* Images overflow the container by default. To prevent this, set
      max-width and max-height to 100% to stay inside container. */
   max-width: 100%;
   max-height: 100%;
-  border-radius: 5px;
+  border-radius: 5px; 
 }
 
 .home-page .product-name {
