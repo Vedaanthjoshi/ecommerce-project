@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Chatbot</title>
+    <style>
+        body{
+            font-family: Arial;
+            margin-top:0px;
+            margin-bottom:0px;
+        }
+        .send-button{
+            background-color: rgb(25, 135, 84);
+            color:white;
+            padding: 12px 29px;/*//first value is vertical space and 2nd value is horizontal space  */
+            margin-left: 10px;   /*space outside an element-margin*/
+            border:none;
+            border-radius:10px;
+            font-size:15px;
+            cursor: pointer;
+        }
+        .chat-input{
+            padding:12px 15px;
+            border-radius: 10px;
+            border-width: 1px;
+            font-size: 15px;
+            flex-grow:1;
+        }
+        .chat-input-container{
+            display:flex;
+            margin-bottom:60px;
+        }
+        .app-container{
+            max-width: 600px;
+            margin-left:auto;
+            margin-right:auto;
+            height:100vh;
+            display:flex;
+            flex-direction: column; 
+        }
+        .chat-message-user{
+            display:flex;
+            justify-content: end;
+            align-items:start;
+        }
+        .chat-message-robot{
+            display:flex;
+            align-items:start;
+        }
+        .chat-message-text{
+            background-color: rgb(238, 238, 238);
+            padding:15px 20px;
+            border-radius:10px;
+            margin-right:10px;
+            margin-left:10px;
+            margin-bottom:20px;
+            max-width: 300px;
+        }
+        .chat-message-profile{
+            width: 45px;
+
+        }
+        .chat-messages-container{
+            margin-top:20px;
+            flex-grow:1;
+            overflow: scroll;
+            scrollbar-width:none;
+        }
+        .welcome-text{
+            text-align: center;
+             color: rgb(120, 120, 120);
+        }
+        .loading-spinner{
+            height:40px;
+            margin:-15px;
+
+        }
+    </style>
+  </head>
+  <body>
+    <div class="js-container"></div>
+    <script src="https://unpkg.com/supersimpledev@8.6.4/external-library.js"></script>
+    <script src="https://unpkg.com/supersimpledev/react.js"></script>
+    <script src="https://unpkg.com/supersimpledev/chatbot.js"></script>
+    <script src="https://unpkg.com/supersimpledev/react-dom.js"></script>
+   <script src="https://unpkg.com/supersimpledev/dayjs.js"></script>
+    <script src="https://unpkg.com/supersimpledev/babel.js"></script>
+    <script type="text/babel">
+        function ChatInput({chatMessages,setChatMessages}){
+            const[inputText,setInputText]=React.useState('');
+            const[isLoading,setIsLoading]=React.useState(false);
+            function SaveInputText(event){
+                setInputText(event.target.value);
+            }
+            function KeyTarget(event){
+                if(event.key==='Enter'){
+                  SendMessage();
+              }
+              if(event.key=='Escape'){
+                setInputText('');
+              }
+            }
+            
+            async function SendMessage(){
+                if(isLoading || inputText===""){//you cannot send a message if you are waiting for a response or the message is empty
+                  return;
+                }
+                setIsLoading(true); 
+                const newChatMessages=[ 
+                    ...chatMessages ,//this is a spread operator it takes the values of an array and copies them into a new array
+                    {
+                        message: inputText,
+                        sender:'user',
+                        id : crypto.randomUUID()
+                    }
+                    
+
+                ]
+                setChatMessages(newChatMessages);
+                setInputText('');
+                setChatMessages([
+                  ...newChatMessages,
+                  {
+                    message:<img src="loading-spinner.gif" className="loading-spinner" />,
+                    sender:'robot',
+                    id:crypto.randomUUID()
+                  }
+                ]
+
+                );
+                const response=await Chatbot.getResponseAsync(inputText);
+                   setChatMessages([ //what setChatMessages does is that it takes an array and completely replaces the chatMessages array with this one 
+                    ...newChatMessages ,//this is a spread operator it takes the values of an array and copies them into a new array
+                    {
+                        message: response,
+                        sender:'robot',
+                        id : crypto.randomUUID()
+                    }
+                    
+
+                ]);
+                setInputText('');
+              setIsLoading(false);
+
+            }
+            return(
+                <div className="chat-input-container">
+                    <input 
+                        placeholder="Send a message to the chatbot" 
+                        size="30"
+                        onChange={SaveInputText}
+                        value={inputText}
+                        onKeyDown={KeyTarget}
+                        className="chat-input"
+                    />
+                    <button onClick={SendMessage} 
+                    className="send-button"
+                    >Send</button>
+                </div>
+            );
+        }
+        function ChatMessage({message,sender}){
+            return (
+                <div className={
+                    sender==='user'
+                        ?'chat-message-user'
+                        :'chat-message-robot'
+                }>
+                {sender ==="robot" && 
+                (<img src="robot.png" className="chat-message-profile"/>)}
+                <div className="chat-message-text">
+                    {message}
+                </div>
+                {sender==="user" &&
+                (<img src="user.png" className="chat-message-profile"/>)}
+
+                </div>
+            );
+            
+        }
+        function ChatMessages({chatMessages}){
+            const chatMessagesRef=React.useRef(null);//this lets us automatically save an html element from a component
+            
+            React.useEffect(()=>{
+                 const containerElem=chatMessagesRef.current;//points to the rendered DOM element of the messages container
+                 if(containerElem){
+                    containerElem.scrollTop=containerElem.scrollHeight; //scrolls the container immediately to the bottom whenever a message is added
+                 }
+
+            },[chatMessages]);
+            //react will run this function after component is created and everytime the component is updated
+            return (
+                <div className="chat-messages-container"
+                ref={chatMessagesRef}
+                >
+                {chatMessages.map((chatMessage)=>
+                    <ChatMessage 
+                    message={chatMessage.message}
+                    sender={chatMessage.sender}
+                    key={chatMessage.id}
+                    />
+
+                )}
+                </div>
+            );
+        }
+         
+
+        
+        function App(){
+            const [chatMessages,setChatMessages]= React.useState([]);
+            //const [chatMessages,setChatMessages]=array; //this is called array destructuring an alternative and shorter code for the code that is commented out below 
+            // const chatMessages=array[0];//gives current value of chatmessages(current data)
+            // const setChatMessages=array[1];//gives a function that updates this data (MUST USE CAMELCASE)
+            //this setChatMessages is A.K.A as updater function 
+            return (
+                
+                <div className="app-container">
+                    {chatMessages.length===0&&(<p className="welcome-text">Welcome to the chatbot project! Send a message using the textbox below.</p>)}
+                    <ChatMessages 
+                    chatMessages={chatMessages}
+                    />
+                    <ChatInput
+                    chatMessages={chatMessages}
+                    setChatMessages={setChatMessages}
+                    />
+                </div>
+               
+            );
+        }
+        const container = document.querySelector('.js-container');
+        ReactDOM.createRoot(container).render(<App/>);
+    </script>
+  </body>
+</html>
